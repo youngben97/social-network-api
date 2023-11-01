@@ -1,4 +1,4 @@
-const { Thought } = require('../models');
+const { Thought, User } = require('../models');
 
 module.exports = {
     //get all thoughts
@@ -28,11 +28,32 @@ module.exports = {
     // create a thought
     async createThought(req, res) {
         try {
-            const thought = await Thought.create(req.body);
-            res.json(thought);
-        } catch (err) {
-            res.status(500).json(err);
-        }
+            const { thoughtText, username } = req.body;
+
+            let user = await User.findOne({ username });
+            if (!user) {
+                return res
+                    .status(404)
+                    .json({ message: 'No user found with that ID'})
+            }
+
+            const thought = new Thought({
+                thoughtText,
+                username: user.username,
+                createdAt: new Date()
+            });
+
+            await thought.save();
+
+            user.thoughts.push(thought._id);
+
+            await user.save();
+            
+            res.status(200).json(thought);
+    } catch (err) {
+        console.error(err)
+        res.status(500).json(err)
+    }
     },
     //update an existing thought
     async updateThought(req, res) {
